@@ -49,7 +49,7 @@ interface Presence {
   [key: string]: { lastSeen: number; country: string };
 }
 
-async function checkToxicity(text: string): Promise<boolean> {
+async function checkToxicity(_text: string): Promise<boolean> {
   return false;
 }
 
@@ -100,7 +100,7 @@ export default function Lobby() {
     onValue(messagesRef, (snap) => {
       const data = snap.val();
       if (!data) return;
-      const msgs = Object.entries(data).map(([id, val]: [string, any]) => ({ id, ...val }));
+      const msgs = Object.entries(data).map(([id, val]: [string, unknown]) => ({ id, ...(val as Record<string, unknown>) })) as Message[];
       setMessages(msgs);
     });
     return () => off(messagesRef);
@@ -200,6 +200,7 @@ export default function Lobby() {
           )}
           {messages.map((msg) => (
             <div key={msg.id} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={FLAG_API(msg.country)}
                 alt={msg.countryName}
