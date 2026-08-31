@@ -33,7 +33,6 @@ const BLACKLIST = [
   "nazi hitler", "terrorist attack", "bomb instructions",
   "cocaine dealer", "heroin supplier", "meth lab",
   "escort service", "prostitution", "sex trafficking",
-  "http://", "https://", "www.", ".com", ".net", ".org",
 ];
 
 interface Message {
@@ -121,17 +120,16 @@ export default function Lobby() {
     if (!input.trim()) return;
     if (cooldown > 0) return;
     if (input.length > 280) return alert("Max 280 characters");
-// Block all URLs
-const urlRegex = /(https?:\/\/|www\.)\S+/i;
-if (urlRegex.test(input)) {
-  alert("Links are not allowed.");
-  return;
-}
-if (BLACKLIST.some((w) => lower.includes(w))) {
-  alert("Message blocked by filter.");
-  return;
-}
+
     const lower = input.toLowerCase();
+
+    // Block all URLs
+    const urlRegex = /(https?:\/\/|www\.)\S+/i;
+    if (urlRegex.test(input)) {
+      alert("Links are not allowed.");
+      return;
+    }
+
     if (BLACKLIST.some((w) => lower.includes(w))) {
       alert("Message blocked by filter.");
       return;
