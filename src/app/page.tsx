@@ -63,7 +63,9 @@ export default function Lobby() {
   const [onlineCount, setOnlineCount] = useState(1);
   const [cooldown, setCooldown] = useState(0);
   const [showRules, setShowRules] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const sessionId = useRef(`session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
   const lastSendRef = useRef(0);
 
@@ -122,8 +124,6 @@ export default function Lobby() {
     if (input.length > 280) return alert("Max 280 characters");
 
     const lower = input.toLowerCase();
-
-    // Block all URLs
     const urlRegex = /(https?:\/\/|www\.)\S+/i;
     if (urlRegex.test(input)) {
       alert("Links are not allowed.");
@@ -160,6 +160,7 @@ export default function Lobby() {
     setInput("");
     lastSendRef.current = now;
     setCooldown(5);
+    setIsTyping(false);
   }, [input, cooldown, username, color, country, countryName]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -169,62 +170,107 @@ export default function Lobby() {
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    setIsTyping(e.target.value.length > 0);
+  };
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
-      <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-[#0a0a0f] text-neutral-100 flex flex-col font-sans relative overflow-hidden">
+      {/* Animated background mesh */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-900/20 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/20 blur-[120px] animate-pulse" style={{ animationDelay: "2s" }} />
+        <div className="absolute top-[40%] left-[60%] w-[30%] h-[30%] rounded-full bg-emerald-900/10 blur-[100px] animate-pulse" style={{ animationDelay: "4s" }} />
+      </div>
+
+      {/* Header */}
+      <header className="relative z-10 border-b border-white/5 bg-black/20 backdrop-blur-xl sticky top-0">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-            <h1 className="text-lg font-bold tracking-tight">THE LOBBY</h1>
+            <div className="relative">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="absolute inset-0 w-3 h-3 rounded-full bg-emerald-500 animate-ping opacity-75" />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              THE LOBBY
+            </h1>
           </div>
-          <div className="flex items-center gap-4 text-sm text-neutral-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
-              {onlineCount.toLocaleString()} online
+          <div className="flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-white/70">{onlineCount.toLocaleString()} online</span>
             </span>
-            <button onClick={() => setShowRules(!showRules)} className="hover:text-neutral-200 transition-colors">
+            <button 
+              onClick={() => setShowRules(!showRules)} 
+              className="text-white/40 hover:text-white/80 transition-colors text-xs uppercase tracking-wider"
+            >
               Rules
             </button>
           </div>
         </div>
       </header>
 
+      {/* Rules Toast */}
       {showRules && (
-        <div className="bg-neutral-900 border-b border-neutral-800">
-          <div className="max-w-3xl mx-auto px-4 py-2 text-xs text-neutral-400 flex justify-between items-center">
-            <span>Be kind. No links. No spam. All languages welcome.</span>
-            <button onClick={() => setShowRules(false)} className="hover:text-white text-lg leading-none">×</button>
+        <div className="relative z-10 animate-in slide-in-from-top-2 duration-300">
+          <div className="max-w-3xl mx-auto px-4 pt-3">
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex justify-between items-center backdrop-blur-sm">
+              <span className="text-xs text-white/50">Be kind. No links. No spam. All languages welcome.</span>
+              <button onClick={() => setShowRules(false)} className="text-white/30 hover:text-white/70 transition-colors w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10">
+                ×
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <main className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="max-w-3xl mx-auto space-y-3">
+      {/* Messages */}
+      <main className="relative z-10 flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-neutral-600 py-20">
-              <p className="text-lg mb-2">The room is empty...</p>
-              <p className="text-sm">Be the first to say something to the world.</p>
+            <div className="text-center py-32 animate-in fade-in duration-700">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                <svg className="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-lg text-white/30 font-medium mb-2">The room is empty...</p>
+              <p className="text-sm text-white/20">Be the first to say something to the world.</p>
             </div>
           )}
-          {messages.map((msg) => (
-            <div key={msg.id} className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={FLAG_API(msg.country)}
-                alt={msg.countryName}
-                className="w-6 h-4 rounded-sm mt-1 object-cover flex-shrink-0"
-                loading="lazy"
-              />
+          
+          {messages.map((msg, index) => (
+            <div 
+              key={msg.id} 
+              className="group flex items-start gap-4 animate-in fade-in slide-in-from-bottom-3 duration-500"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="relative flex-shrink-0 mt-1">
+                <img
+                  src={FLAG_API(msg.country)}
+                  alt={msg.countryName}
+                  className="w-7 h-5 rounded-md object-cover shadow-lg"
+                  loading="lazy"
+                />
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#0a0a0f]" />
+              </div>
+              
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2.5 mb-1">
                   <span className="font-semibold text-sm" style={{ color: msg.color }}>
                     {msg.username}
                   </span>
-                  <span className="text-xs text-neutral-600">
+                  <span className="text-[10px] text-white/20 uppercase tracking-wider">
+                    {msg.countryName}
+                  </span>
+                  <span className="text-xs text-white/15">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <p className="text-sm text-neutral-200 break-words leading-relaxed">{msg.text}</p>
+                <div className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.1] rounded-2xl rounded-tl-sm px-4 py-2.5 transition-all duration-200 group-hover:translate-x-0.5">
+                  <p className="text-sm text-white/80 leading-relaxed">{msg.text}</p>
+                </div>
               </div>
             </div>
           ))}
@@ -232,45 +278,59 @@ export default function Lobby() {
         </div>
       </main>
 
-      <footer className="border-t border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3 mb-2">
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.slice(0, 20))}
-              className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-sm w-32 focus:outline-none focus:border-neutral-500"
-            />
-            <div className="flex gap-1">
+      {/* Input Dock */}
+      <footer className="relative z-10 border-t border-white/5 bg-black/30 backdrop-blur-2xl">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.slice(0, 20))}
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm w-28 focus:outline-none focus:border-white/20 focus:bg-white/[0.07] transition-all text-white/70 placeholder:text-white/20"
+              />
+            </div>
+            
+            <div className="flex gap-1.5">
               {COLORS.map((c) => (
                 <button
                   key={c}
                   onClick={() => setColor(c)}
-                  className={`w-5 h-5 rounded-full border-2 transition-all ${color === c ? "border-white scale-110" : "border-transparent"}`}
+                  className={`w-6 h-6 rounded-full transition-all duration-200 ${color === c ? "ring-2 ring-white/50 scale-110" : "opacity-40 hover:opacity-70"}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
-            <span className="text-xs text-neutral-600 ml-auto">
-              {cooldown > 0 ? `Wait ${cooldown}s` : `${input.length}/280`}
-            </span>
+            
+            <div className="ml-auto flex items-center gap-2">
+              {isTyping && (
+                <span className="text-[10px] text-white/30 uppercase tracking-wider animate-in fade-in">
+                  Typing...
+                </span>
+              )}
+              <span className={`text-xs transition-colors ${input.length > 250 ? "text-amber-400/70" : "text-white/20"}`}>
+                {cooldown > 0 ? `Wait ${cooldown}s` : `${input.length}/280`}
+              </span>
+            </div>
           </div>
-          <div className="flex gap-2">
+          
+          <div className="relative">
             <input
+              ref={inputRef}
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Say something to the world..."
               disabled={cooldown > 0}
               maxLength={280}
-              className="flex-1 bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-neutral-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-white/[0.04] border border-white/10 hover:border-white/15 focus:border-white/25 focus:bg-white/[0.06] rounded-2xl px-5 py-4 pr-16 text-sm focus:outline-none transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white/80 placeholder:text-white/20"
             />
             <button
               onClick={sendMessage}
               disabled={!input.trim() || cooldown > 0}
-              className="bg-neutral-100 text-neutral-950 font-semibold px-6 py-3 rounded-xl text-sm hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-black font-semibold px-4 py-2 rounded-xl text-xs hover:bg-white/90 disabled:opacity-0 disabled:pointer-events-none transition-all duration-200"
             >
               Send
             </button>
