@@ -43,6 +43,7 @@ interface Message {
   country: string;
   countryName: string;
   timestamp: number;
+  deviceId: string;
 }
 
 interface Presence {
@@ -68,6 +69,19 @@ export default function Lobby() {
   const inputRef = useRef<HTMLInputElement>(null);
   const sessionId = useRef(`session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
   const lastSendRef = useRef(0);
+  const deviceIdRef = useRef("");
+
+  // ─── Persistent Device ID ───
+  useEffect(() => {
+    const stored = localStorage.getItem("lobby-device-id");
+    if (stored) {
+      deviceIdRef.current = stored;
+    } else {
+      const newId = `dev_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+      localStorage.setItem("lobby-device-id", newId);
+      deviceIdRef.current = newId;
+    }
+  }, []);
 
   useEffect(() => {
     fetch("https://ipapi.co/json/")
@@ -118,18 +132,34 @@ export default function Lobby() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
+  const reportMessage = async (msgId: string) => {
+    await push(ref(db, "reports"), {
+      messageId: msgId,
+      reason: "User reported",
+      timestamp: Date.now(),
+    });
+    alert("Reported. Thanks.");
+  };
+
   const sendMessage = useCallback(async () => {
     if (!input.trim()) return;
     if (cooldown > 0) return;
     if (input.length > 280) return alert("Max 280 characters");
 
-    const lower = input.toLowerCase();
-    const urlRegex = /(https?:\/\/|www\.)\S+/i;
-    if (urlRegex.test(input)) {
+    // ─── Hardened URL Filter ───
+    const normalized = input
+      .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width chars
+      .replace(/\s+/g, "") // all whitespace
+      .replace(/[οοο]/g, "o") // greek omicron → latin o
+      .toLowerCase();
+
+    const urlRegex = /(https?:\/\/|www\.|\.com|\.net|\.org|\.co|\.io)\S*/i;
+    if (urlRegex.test(normalized)) {
       alert("Links are not allowed.");
       return;
     }
 
+    const lower = input.toLowerCase();
     if (BLACKLIST.some((w) => lower.includes(w))) {
       alert("Message blocked by filter.");
       return;
@@ -155,6 +185,7 @@ export default function Lobby() {
       country,
       countryName,
       timestamp: now,
+      deviceId: deviceIdRef.current,
     });
 
     setInput("");
@@ -267,6 +298,12 @@ export default function Lobby() {
                   <span className="text-xs text-white/15">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
+                  <button 
+                    onClick={() => reportMessage(msg.id)}
+                    className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all text-xs ml-2"
+                  >
+                    🚩
+                  </button>
                 </div>
                 <div className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.1] rounded-2xl rounded-tl-sm px-4 py-2.5 transition-all duration-200 group-hover:translate-x-0.5">
                   <p className="text-sm text-white/80 leading-relaxed">{msg.text}</p>
