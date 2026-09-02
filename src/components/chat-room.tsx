@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { db } from "@/lib/firebase";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import {
   ref,
   onValue,
@@ -12,7 +13,7 @@ import {
   remove,
 } from "firebase/database";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Users, Flag, Shield } from "lucide-react";
+import { Send, Users, Flag, Shield, Smile } from "lucide-react";
 import Link from "next/link";
 
 interface Message {
@@ -25,14 +26,18 @@ interface Message {
 }
 
 const MAX_MESSAGES = 100;
-const BANNED_WORDS = ["spam", "scam", "http://", "https://"];
+const BANNED_WORDS = [
+  "spam", "scam", "http://", "https://",
+  "xnxx", "xvideo", "xvideos", "porn", "pornhub", "xxx",
+  "onlyfans", "nsfw",
+];
 
 function getDeviceId() {
   if (typeof window === "undefined") return "";
-  let id = localStorage.getItem("lobby_device_id");
+  let id = sessionStorage.getItem("lobby_device_id");
   if (!id) {
     id = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    localStorage.setItem("lobby_device_id", id);
+    sessionStorage.setItem("lobby_device_id", id);
   }
   return id;
 }
@@ -52,6 +57,7 @@ export default function ChatRoom() {
   const [username, setUsername] = useState("");
   const [country, setCountry] = useState("🌐");
   const [isBanned, setIsBanned] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const deviceId = useRef(getDeviceId());
 
@@ -101,22 +107,25 @@ export default function ChatRoom() {
   const sendMessage = useCallback(() => {
     if (!input.trim() || isBanned) return;
     if (BANNED_WORDS.some((w) => input.toLowerCase().includes(w))) {
-      alert("Message contains blocked content.");
-      return;
+      return; // silently drop, no explanation
     }
 
-  const msgsRef = ref(db, "messages");
-const messageData = {
-  text: input.trim(),
-  username,
-  country,
-  timestamp: Date.now(),
-  deviceId: deviceId.current,
-};
-console.log("Sending message:", JSON.stringify(messageData, null, 2));
-push(msgsRef, messageData);
-setInput("");
+    const msgsRef = ref(db, "messages");
+    const messageData = {
+      text: input.trim(),
+      username,
+      country,
+      timestamp: Date.now(),
+      deviceId: deviceId.current,
+    };
+    push(msgsRef, messageData);
+    setInput("");
   }, [input, username, country, isBanned]);
+
+  const addEmoji = (emojiData: EmojiClickData) => {
+    setInput((prev) => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
 
   const reportMessage = (msgId: string) => {
     const reason = prompt("Report reason?");
@@ -189,23 +198,36 @@ setInput("");
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex gap-2 p-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          placeholder="Say something..."
-          maxLength={500}
-          className="flex-1 bg-transparent px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:outline-none"
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!input.trim()}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white p-3 rounded-xl transition-colors"
-        >
-          <Send className="w-4 h-4" />
-        </button>
+      <div className="relative">
+        {showEmojiPicker && (
+          <div className="absolute bottom-full mb-2 left-0 z-50">
+            <EmojiPicker onEmojiClick={addEmoji} theme="dark" />
+          </div>
+        )}
+        <div className="flex gap-2 p-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
+          <button
+            onClick={() => setShowEmojiPicker((prev) => !prev)}
+            className="text-neutral-400 hover:text-white p-3 transition-colors"
+          >
+            <Smile className="w-4 h-4" />
+          </button>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            placeholder="Say something..."
+            maxLength={500}
+            className="flex-1 bg-transparent px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:outline-none"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim()}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 text-white p-3 rounded-xl transition-colors"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
