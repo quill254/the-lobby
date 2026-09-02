@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+<EmojiPicker onEmojiClick={addEmoji} theme={Theme.DARK} />
 import {
   ref,
   onValue,
