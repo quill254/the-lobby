@@ -28,6 +28,7 @@ const MAX_MESSAGES = 100;
 const BANNED_WORDS = ["spam", "scam", "http://", "https://"];
 
 function getDeviceId() {
+  if (typeof window === "undefined") return "";
   let id = localStorage.getItem("lobby_device_id");
   if (!id) {
     id = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -104,15 +105,17 @@ export default function ChatRoom() {
       return;
     }
 
-    const msgsRef = ref(db, "messages");
-    push(msgsRef, {
-      text: input.trim(),
-      username,
-      country,
-      timestamp: Date.now(),
-      deviceId: deviceId.current,
-    });
-    setInput("");
+  const msgsRef = ref(db, "messages");
+const messageData = {
+  text: input.trim(),
+  username,
+  country,
+  timestamp: Date.now(),
+  deviceId: deviceId.current,
+};
+console.log("Sending message:", JSON.stringify(messageData, null, 2));
+push(msgsRef, messageData);
+setInput("");
   }, [input, username, country, isBanned]);
 
   const reportMessage = (msgId: string) => {

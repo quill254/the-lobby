@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { ref, onValue, off, remove } from "firebase/database";
+import { ref, onValue, off, remove, set } from "firebase/database";
 import { motion } from "framer-motion";
 import { Shield, Trash2, Ban, AlertTriangle } from "lucide-react";
 
