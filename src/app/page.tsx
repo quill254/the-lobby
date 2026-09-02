@@ -32,13 +32,10 @@ export default function Home() {
             <p className="text-xs text-neutral-500">Anonymous chatroom</p>
           </div>
           <nav className="flex gap-4 text-sm">
-            <a href="/privacy" className="text-neutral-400 hover:text-white transition-colors">
-              Privacy
-            </a>
-            <a href="/godmode" className="text-neutral-400 hover:text-white transition-colors">
-              Admin
-            </a>
-          </nav>
+  <a href="/privacy" className="text-neutral-400 hover:text-white transition-colors">
+    Privacy
+  </a>
+</nav>
         </header>
 
         <div className="container mx-auto px-4 py-6">
