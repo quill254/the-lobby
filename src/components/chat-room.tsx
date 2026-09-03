@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { db } from "@/lib/firebase";
-<EmojiPicker onEmojiClick={addEmoji} theme={Theme.DARK} />
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import {
   ref,
   onValue,
@@ -201,7 +201,7 @@ export default function ChatRoom() {
       <div className="relative">
         {showEmojiPicker && (
           <div className="absolute bottom-full mb-2 left-0 z-50">
-            <EmojiPicker onEmojiClick={addEmoji} theme="dark" />
+            <EmojiPicker onEmojiClick={addEmoji} theme={Theme.DARK} />
           </div>
         )}
         <div className="flex gap-2 p-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
